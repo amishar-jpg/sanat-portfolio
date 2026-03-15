@@ -1,29 +1,9 @@
 "use client";
 
-/**
- * Works.tsx — Max Milkin style Works section
- *
- * Changes from previous version:
- *  1. Asteroid is smaller (baseRadius 1.08 → 0.82) and olive-green tinted
- *  2. On hover: asteroid FIRST shrinks, THEN moves to the START of the hovered
- *     project name label (left edge for left-aligned, right edge for right-aligned)
- *  3. On leave: asteroid moves back to center, THEN scales back to full size
- *
- * Tech Stack:
- *  - Next.js 14 (App Router, "use client")
- *  - TypeScript
- *  - Tailwind CSS
- *  - Three.js  — 3D asteroid
- *  - GSAP      — sequenced hover transitions
- *
- * Install:  npm install three gsap @types/three
- */
-
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import gsap from "gsap";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 interface Project {
   id: string;
   name: string;
@@ -35,7 +15,6 @@ interface Project {
   previewSub: string;
 }
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
 const PROJECTS: Project[] = [
   {
     id: "olha",
@@ -89,7 +68,6 @@ const PROJECTS: Project[] = [
   },
 ];
 
-// ─── Corner CSS positions ─────────────────────────────────────────────────────
 const CORNER_STYLE: Record<string, React.CSSProperties> = {
   tl: { top: "20%", left: "16%", textAlign: "left" },
   tr: { top: "20%", right: "16%", textAlign: "right" },
@@ -97,52 +75,87 @@ const CORNER_STYLE: Record<string, React.CSSProperties> = {
   br: { top: "48%", right: "16%", textAlign: "right" },
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
 }
 
-function fbm(x: number, y: number, z: number): number {
-  let v = 0,
-    a = 0.5;
-  for (let i = 0; i < 5; i++) {
-    v += a * (Math.sin(x * 1.7 + y * 2.3 + z * 1.1) * 0.5 + 0.5);
-    x *= 2.1;
-    y *= 2.1;
-    z *= 2.1;
-    a *= 0.5;
-  }
-  return v;
-}
-
-// Asteroid size when hovering — extremely small (text-sized) in front of label
 const HOVER_SCALE = 0.005;
-// NDC depth so asteroid sits in front of the label on screen
 const LABEL_Z = 0.01;
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// ── TESSERACT (4D hypercube) helpers ──────────────────────────────────────────
+// 16 vertices of a 4D unit hypercube projected to 3D via perspective projection
+function tesseractEdges(): [number, number][] {
+  // All pairs of vertices that differ in exactly one bit (i.e. share an edge in 4D)
+  const edges: [number, number][] = [];
+  for (let i = 0; i < 16; i++) {
+    for (let j = i + 1; j < 16; j++) {
+      // XOR — if exactly one bit differs they are connected
+      const xor = i ^ j;
+      if (xor && (xor & (xor - 1)) === 0) edges.push([i, j]);
+    }
+  }
+  return edges;
+}
+
+function project4Dto3D(
+  w4: [number, number, number, number][],
+  angle1: number,
+  angle2: number,
+): THREE.Vector3[] {
+  // Rotate in two 4D planes (XW and YW) then perspective-project W → 3D
+  const cos1 = Math.cos(angle1),
+    sin1 = Math.sin(angle1);
+  const cos2 = Math.cos(angle2),
+    sin2 = Math.sin(angle2);
+  const wDist = 2.5; // perspective distance in W dimension
+
+  return w4.map(([x, y, z, w]) => {
+    // Rotate in XW plane
+    const x1 = x * cos1 - w * sin1;
+    const w1 = x * sin1 + w * cos1;
+    // Rotate in YW plane
+    const y1 = y * cos2 - w1 * sin2;
+    const w2 = y * sin2 + w1 * cos2;
+    // Perspective divide
+    const s = 1 / (wDist - w2);
+    return new THREE.Vector3(x1 * s, y1 * s, z * s);
+  });
+}
+
+// Build 4D vertices (all combinations of ±1 in 4 dims)
+const VERTS_4D: [number, number, number, number][] = Array.from(
+  { length: 16 },
+  (_, i) => [i & 1 ? 1 : -1, i & 2 ? 1 : -1, i & 4 ? 1 : -1, i & 8 ? 1 : -1],
+);
+const EDGES_4D = tesseractEdges();
+
+// Classify each edge as "inner" (both verts have w=1 or both w=-1 in same 4D cube)
+// We use a simple heuristic: inner cube = all verts with w < 0 (bit 3 clear)
+function isInnerEdge(a: number, b: number): boolean {
+  return !!(a & 8) === !!(b & 8);
+}
+// ── END TESSERACT HELPERS ─────────────────────────────────────────────────────
+
 export default function Works() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const asteroidRef = useRef<THREE.Mesh | null>(null);
+  const asteroidRef = useRef<THREE.Group | null>(null);
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const frameRef = useRef<number>(0);
-
-  // label element refs — keyed by project id
   const labelRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
   const targetMouse = useRef({ x: 0, y: 0 });
   const smoothMouse = useRef({ x: 0.2, y: 0.4 });
-
   const cardRef = useRef<HTMLDivElement>(null);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const activeRef = useRef<Project | null>(null);
-
-  // Is a hover sequence currently running? Guard against race conditions.
   const animating = useRef(false);
 
-  // ── Three.js setup ─────────────────────────────────────────────────────
+  // Refs for tesseract line geometry so we can update them each frame
+  const edgeLinesRef = useRef<THREE.LineSegments[]>([]);
+  const angle1Ref = useRef(0);
+  const angle2Ref = useRef(0);
+
   useEffect(() => {
     const canvas = canvasRef.current!;
     const W = canvas.offsetWidth;
@@ -163,80 +176,79 @@ export default function Works() {
     camera.position.set(0, 0, 5);
     cameraRef.current = camera;
 
-    // ── Lighting ──────────────────────────────────────────────────────────
-    scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+    // ── TESSERACT GROUP ───────────────────────────────────────────────────────
+    const tesseractGroup = new THREE.Group();
+    scene.add(tesseractGroup);
+    asteroidRef.current = tesseractGroup;
 
-    const key = new THREE.DirectionalLight(0xfff3cc, 2.2);
-    key.position.set(4, 5, 4);
-    scene.add(key);
+    // Pre-create one LineSegments per edge (so we can update positions each frame)
+    const lines: THREE.LineSegments[] = [];
+    EDGES_4D.forEach(([a, b]) => {
+      const inner = isInnerEdge(a, b);
+      const geo = new THREE.BufferGeometry();
+      // Two points per line segment
+      geo.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 0], 3),
+      );
 
-    const fill = new THREE.DirectionalLight(0x88aa66, 0.55); // olive-tinted fill
-    fill.position.set(-3, -2, 2);
-    scene.add(fill);
-
-    const rim = new THREE.PointLight(0xaaccaa, 1.1, 14); // greenish rim
-    rim.position.set(0, -3, -2);
-    scene.add(rim);
-
-    const back = new THREE.PointLight(0x446633, 0.4, 20);
-    back.position.set(-2, 1, -4);
-    scene.add(back);
-
-    // ── Geometry — smaller base radius ────────────────────────────────────
-    const baseRadius = 0.82; // was 1.08 — noticeably smaller
-    const geo = new THREE.IcosahedronGeometry(baseRadius, 6);
-    const pos = geo.attributes.position;
-
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i),
-        y = pos.getY(i),
-        z = pos.getZ(i);
-      const len = Math.sqrt(x * x + y * y + z * z);
-      const nx = x / len,
-        ny = y / len,
-        nz = z / len;
-      const d =
-        0.38 * fbm(nx * 2.8, ny * 2.8, nz * 2.8) +
-        0.18 * fbm(nx * 6.1, ny * 6.1, nz * 6.1) +
-        0.08 * Math.sin(ny * 8) -
-        0.04;
-      const r = baseRadius + d;
-      pos.setXYZ(i, nx * r, ny * r, nz * r);
-    }
-    geo.computeVertexNormals();
-
-    // ── Material — olive-green colour scheme ──────────────────────────────
-    const mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color(0x3a4a28), // olive green base
-      roughness: 0.82,
-      metalness: 0.18,
-      vertexColors: true,
+      const mat = new THREE.LineBasicMaterial({
+        color: inner ? 0xaaddff : 0xffffff,
+        transparent: true,
+        opacity: inner ? 0.3 : 0.85,
+        linewidth: 1,
+      });
+      const line = new THREE.LineSegments(geo, mat);
+      line.renderOrder = inner ? 1 : 2;
+      tesseractGroup.add(line);
+      lines.push(line);
     });
+    edgeLinesRef.current = lines;
 
-    // Vertex colours: olive / moss / dark-khaki variation
-    const cols: number[] = [];
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i),
-        y = pos.getY(i),
-        z = pos.getZ(i);
-      const v1 = fbm(x * 3, y * 3, z * 3);
-      const v2 = fbm(x * 7 + 10, y * 7, z * 7);
-      // R channel: olive (0.22–0.38)
-      const r = 0.22 + v1 * 0.14 + v2 * 0.02;
-      // G channel: slightly higher (0.28–0.46) — the green in olive
-      const g = 0.28 + v1 * 0.16 + v2 * 0.02;
-      // B channel: low (0.08–0.16)
-      const b = 0.08 + v1 * 0.07 + v2 * 0.01;
-      cols.push(r, g, b);
+    // Outer glow sphere behind tesseract
+    const glowGeo = new THREE.SphereGeometry(1.1, 32, 32);
+    const glowMat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(0.18, 0.42, 0.85),
+      transparent: true,
+      opacity: 0.055,
+      side: THREE.BackSide,
+      depthWrite: false,
+    });
+    const glowMesh = new THREE.Mesh(glowGeo, glowMat);
+    glowMesh.renderOrder = 0;
+    tesseractGroup.add(glowMesh);
+
+    // Very faint inner core sphere
+    const coreGeo = new THREE.SphereGeometry(0.18, 16, 16);
+    const coreMat = new THREE.MeshBasicMaterial({
+      color: new THREE.Color(0.5, 0.85, 1.0),
+      transparent: true,
+      opacity: 0.18,
+      depthWrite: false,
+    });
+    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+    coreMesh.renderOrder = 3;
+    tesseractGroup.add(coreMesh);
+
+    // Vertex dots
+    const dotGeo = new THREE.SphereGeometry(0.018, 8, 8);
+    const dotMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.6,
+    });
+    const dotMeshes: THREE.Mesh[] = [];
+    for (let i = 0; i < 16; i++) {
+      const dot = new THREE.Mesh(dotGeo, dotMat);
+      tesseractGroup.add(dot);
+      dotMeshes.push(dot);
     }
-    geo.setAttribute("color", new THREE.Float32BufferAttribute(cols, 3));
 
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.rotation.set(0.4, 0.2, 0.1);
-    scene.add(mesh);
-    asteroidRef.current = mesh;
+    // Initial rotation
+    tesseractGroup.rotation.set(0.25, 0.4, 0.08);
+    // ── END TESSERACT ─────────────────────────────────────────────────────────
 
-    // ── Mouse tracking ─────────────────────────────────────────────────────
+    // ── Mouse tracking ────────────────────────────────────────────────────────
     const container = containerRef.current ?? document.body;
     const onMouse = (e: MouseEvent) => {
       const r = container.getBoundingClientRect();
@@ -245,7 +257,7 @@ export default function Works() {
     };
     container.addEventListener("mousemove", onMouse);
 
-    // ── Render loop ────────────────────────────────────────────────────────
+    // ── Render loop ───────────────────────────────────────────────────────────
     let t = 0;
     let last = performance.now();
     const tick = (now: number) => {
@@ -253,6 +265,34 @@ export default function Works() {
       const dt = Math.min((now - last) / 1000, 0.1);
       last = now;
       t += 0.004;
+
+      // Advance 4D rotation angles
+      angle1Ref.current += 0.007;
+      angle2Ref.current += 0.011;
+
+      // Re-project tesseract vertices and update line geometry
+      const projected = project4Dto3D(
+        VERTS_4D,
+        angle1Ref.current,
+        angle2Ref.current,
+      );
+      edgeLinesRef.current.forEach((line, i) => {
+        const [a, b] = EDGES_4D[i];
+        const pa = projected[a];
+        const pb = projected[b];
+        const arr = line.geometry.attributes.position.array as Float32Array;
+        arr[0] = pa.x;
+        arr[1] = pa.y;
+        arr[2] = pa.z;
+        arr[3] = pb.x;
+        arr[4] = pb.y;
+        arr[5] = pb.z;
+        line.geometry.attributes.position.needsUpdate = true;
+      });
+      // Update vertex dot positions
+      dotMeshes.forEach((dot, i) => {
+        dot.position.copy(projected[i]);
+      });
 
       const m = asteroidRef.current;
       if (m) {
@@ -271,14 +311,12 @@ export default function Works() {
         const idle = !activeRef.current && !animating.current;
 
         if (idle) {
-          // Mouse-interactive rotation: asteroid tilts toward cursor
           const rotY = t * 0.08 + smoothMouse.current.x * 0.5;
           const rotX =
             0.4 + Math.sin(t * 0.5) * 0.03 + smoothMouse.current.y * 0.45;
           m.rotation.y = rotY;
           m.rotation.x = rotX;
 
-          // Mouse-interactive position: subtle drift toward cursor (parallax)
           const driftX = smoothMouse.current.x * 0.28;
           const driftY = Math.sin(t) * 0.05 + smoothMouse.current.y * 0.22;
           const rk = 1 - Math.exp(-4 * dt);
@@ -311,7 +349,6 @@ export default function Works() {
     };
   }, []);
 
-  // ── Start of project name (left edge for left-aligned, right for right-aligned) → world pos ─
   const labelStartWorld = (
     el: HTMLElement,
     corner: Project["corner"],
@@ -320,21 +357,17 @@ export default function Works() {
     const container = containerRef.current!;
     const cr = container.getBoundingClientRect();
     const er = el.getBoundingClientRect();
-
     const isRight = corner === "tr" || corner === "br";
     const startX = isRight ? er.right + 6 : er.left - 6;
     const centerY = er.top + er.height / 2;
-
     const ndcX = ((startX - cr.left) / cr.width) * 2 - 1;
     const ndcY = -(((centerY - cr.top) / cr.height) * 2 - 1);
-
     const vec = new THREE.Vector3(ndcX, ndcY, LABEL_Z);
     vec.unproject(camera);
     return vec;
   };
 
-  // ── Hover enter: shrink FIRST, then move ──────────────────────────────
-  const handleEnter = (project: Project, e: React.MouseEvent) => {
+  const handleEnter = (project: Project) => {
     if (activeRef.current?.id === project.id) return;
     activeRef.current = project;
     animating.current = true;
@@ -343,7 +376,6 @@ export default function Works() {
     const asteroid = asteroidRef.current;
     if (!asteroid) return;
 
-    // Stop any ongoing tweens
     gsap.killTweensOf(asteroid.scale);
     gsap.killTweensOf(asteroid.position);
 
@@ -352,14 +384,11 @@ export default function Works() {
       ? labelStartWorld(labelEl, project.corner)
       : { x: 0, y: 0, z: 0 };
 
-    // ── Phase 1: shrink in place (0 → 0.35s) ──────────────────────────
-    // ── Phase 2: move to label start (starts at 0.28s, slight overlap) ─
     const tl = gsap.timeline({
       onComplete: () => {
         animating.current = false;
       },
     });
-
     tl.to(
       asteroid.scale,
       {
@@ -371,7 +400,6 @@ export default function Works() {
       },
       0,
     );
-
     tl.to(
       asteroid.position,
       {
@@ -382,9 +410,8 @@ export default function Works() {
         ease: "power3.out",
       },
       0.28,
-    ); // starts slightly before shrink finishes → feels snappy
+    );
 
-    // Card: fade in
     gsap.killTweensOf(cardRef.current);
     gsap.fromTo(
       cardRef.current,
@@ -400,7 +427,6 @@ export default function Works() {
     );
   };
 
-  // ── Hover leave: slowly move back to center, then grow back ────────────────
   const handleLeave = () => {
     if (!activeRef.current) return;
     activeRef.current = null;
@@ -417,7 +443,6 @@ export default function Works() {
       ease: "power2.in",
       onComplete: () => setActiveProject(null),
     });
-
     gsap.killTweensOf(asteroid.scale);
     gsap.killTweensOf(asteroid.position);
 
@@ -426,34 +451,18 @@ export default function Works() {
         animating.current = false;
       },
     });
-
-    // Slow return to center
     tl.to(
       asteroid.position,
-      {
-        x: 0,
-        y: 0,
-        z: 0,
-        duration: 1.25,
-        ease: "power2.inOut",
-      },
+      { x: 0, y: 0, z: 0, duration: 1.25, ease: "power2.inOut" },
       0,
     );
-
     tl.to(
       asteroid.scale,
-      {
-        x: 1,
-        y: 1,
-        z: 1,
-        duration: 1.1,
-        ease: "power2.inOut",
-      },
+      { x: 1, y: 1, z: 1, duration: 1.1, ease: "power2.inOut" },
       0.15,
     );
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────
   const mainProjects = PROJECTS.filter((p) => p.id !== "mosaic");
   const mosaicProject = PROJECTS.find((p) => p.id === "mosaic")!;
 
@@ -463,7 +472,6 @@ export default function Works() {
         @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { background: #060606; color: #fff; overflow-x: hidden; }
-
         .proj-label {
           font-family: 'Barlow', sans-serif;
           font-size: clamp(0.7rem, 1.1vw, 0.92rem);
@@ -488,16 +496,14 @@ export default function Works() {
         }
         .proj-label:hover { color: #fff; letter-spacing: 0.24em; }
         .proj-label:hover::after { background: rgba(255,255,255,0.65); }
-
         .preview-card { pointer-events: none; will-change: transform, opacity; }
-
         @keyframes grain {
-          0%,100% { transform:translate(0,0)    }
+          0%,100% { transform:translate(0,0) }
           10%      { transform:translate(-2%,-3%) }
-          30%      { transform:translate(3%,2%)   }
-          50%      { transform:translate(-1%,3%)  }
-          70%      { transform:translate(2%,-2%)  }
-          90%      { transform:translate(-3%,1%)  }
+          30%      { transform:translate(3%,2%) }
+          50%      { transform:translate(-1%,3%) }
+          70%      { transform:translate(2%,-2%) }
+          90%      { transform:translate(-3%,1%) }
         }
       `}</style>
 
@@ -511,7 +517,7 @@ export default function Works() {
           overflow: "hidden",
         }}
       >
-        {/* ── Smoky background ──────────────────────────────────────────── */}
+        {/* Smoky background */}
         <div
           style={{
             position: "absolute",
@@ -556,7 +562,6 @@ export default function Works() {
               filter: "blur(60px)",
             }}
           />
-          {/* film grain */}
           <div
             style={{
               position: "absolute",
@@ -571,7 +576,7 @@ export default function Works() {
           />
         </div>
 
-        {/* ── HUD labels ────────────────────────────────────────────────── */}
+        {/* HUD labels */}
         <div
           style={{
             position: "absolute",
@@ -603,7 +608,7 @@ export default function Works() {
           [ N.004 ]
         </div>
 
-        {/* ── Three.js canvas ───────────────────────────────────────────── */}
+        {/* Three.js canvas */}
         <canvas
           ref={canvasRef}
           style={{
@@ -615,7 +620,7 @@ export default function Works() {
           }}
         />
 
-        {/* ── 4 corner project labels ───────────────────────────────────── */}
+        {/* 4 corner project labels */}
         {mainProjects.map((project) => (
           <div
             key={project.id}
@@ -627,14 +632,14 @@ export default function Works() {
               zIndex: 10,
               ...CORNER_STYLE[project.corner],
             }}
-            onMouseEnter={(e) => handleEnter(project, e)}
+            onMouseEnter={() => handleEnter(project)}
             onMouseLeave={handleLeave}
           >
             <span className="proj-label">{project.name}</span>
           </div>
         ))}
 
-        {/* ── Mosaic — bottom center ─────────────────────────────────────── */}
+        {/* Mosaic — bottom center */}
         <div
           ref={(el) => {
             labelRefs.current[mosaicProject.id] = el;
@@ -646,13 +651,13 @@ export default function Works() {
             transform: "translateX(-30%)",
             zIndex: 10,
           }}
-          onMouseEnter={(e) => handleEnter(mosaicProject, e)}
+          onMouseEnter={() => handleEnter(mosaicProject)}
           onMouseLeave={handleLeave}
         >
           <span className="proj-label">{mosaicProject.name}</span>
         </div>
 
-        {/* ── Sub-label ─────────────────────────────────────────────────── */}
+        {/* Sub-label */}
         <div
           style={{
             position: "absolute",
@@ -672,14 +677,14 @@ export default function Works() {
           PROJECTS
         </div>
 
-        {/* ── Preview card ──────────────────────────────────────────────── */}
+        {/* Preview card */}
         <div
           ref={cardRef}
           className="preview-card"
           style={{
             position: "absolute",
             left: "50%",
-            top: "50%",
+            top: "28%",
             transform: "translate(-50%,-50%)",
             zIndex: 20,
             opacity: 0,
@@ -696,7 +701,7 @@ export default function Works() {
                 width: "100%",
                 height: "100%",
                 background:
-                  "linear-gradient(135deg,#191c14 0%,#22271a 50%,#191c14 100%)",
+                  "linear-gradient(160deg,#0d0f18 0%,#111520 45%,#0a0c14 100%)",
                 position: "relative",
                 display: "flex",
                 flexDirection: "column",
@@ -705,7 +710,7 @@ export default function Works() {
                 padding: "32px",
               }}
             >
-              {/* noise */}
+              {/* film grain overlay */}
               <div
                 style={{
                   position: "absolute",
@@ -713,6 +718,15 @@ export default function Works() {
                   backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E")`,
                   opacity: 0.55,
                   mixBlendMode: "overlay",
+                }}
+              />
+              {/* subtle cyan edge glow matching black hole palette */}
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background:
+                    "radial-gradient(ellipse 80% 60% at 50% 100%, rgba(40,120,180,0.12) 0%, transparent 70%)",
                 }}
               />
               {/* bottom gradient */}
@@ -727,31 +741,6 @@ export default function Works() {
                     "linear-gradient(to top,rgba(0,0,0,0.65),transparent)",
                 }}
               />
-              {/* architectural bars */}
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: "8%",
-                  left: "5%",
-                  right: "5%",
-                  display: "grid",
-                  gridTemplateColumns: "repeat(8,1fr)",
-                  gap: "3px",
-                  height: "35%",
-                }}
-              >
-                {Array.from({ length: 32 }).map((_, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      background: `rgba(180,200,140,${0.025 + (i % 4) * 0.018})`,
-                      borderRadius: "1px",
-                      transform: `scaleY(${0.3 + Math.sin(i * 0.7) * 0.5 + 0.5})`,
-                      transformOrigin: "bottom",
-                    }}
-                  />
-                ))}
-              </div>
               {/* nav dots */}
               <div
                 style={{

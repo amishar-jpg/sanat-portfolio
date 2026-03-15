@@ -5,7 +5,7 @@ export default function Navbar() {
     <div>
       <nav
         style={{
-          position: "absolute",
+          position: "fixed",
           inset: "0 0 auto 0",
           zIndex: 50,
           display: "flex",

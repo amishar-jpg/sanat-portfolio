@@ -257,7 +257,7 @@ export default function Connect() {
               border: "1.5px solid rgba(255,255,255,0.12)",
             }}
           >
-            <img src="Sanat.png" alt="Avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <img src="Sanat_2.jpg" alt="Avatar" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </motion.div>
 
           {/* headline — GSAP split */}

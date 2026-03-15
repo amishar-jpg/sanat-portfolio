@@ -323,7 +323,7 @@ function SectionTitle() {
     <h2
       ref={ref}
       style={{
-        fontSize: "clamp(30px, 4.2vw, 62px)",
+        fontSize: "clamp(38px, 5.5vw, 80px)",
         fontWeight: 800,
         letterSpacing: "-0.04em",
         lineHeight: 1,
@@ -374,7 +374,7 @@ function SkillRow({
   }, [isInView, index]);
 
   const nameStyle: React.CSSProperties = {
-    fontSize: "clamp(17px, 2.4vw, 34px)",
+    fontSize: "clamp(22px, 3vw, 46px)",
     fontWeight: 700,
     letterSpacing: "-0.03em",
     whiteSpace: "nowrap",
@@ -449,7 +449,7 @@ function SkillRow({
         style={{
           display: "flex",
           alignItems: "center",
-          padding: "12px 20px 12px 0",
+          padding: "20px 24px 20px 0",
           gap: 20,
           position: "relative",
           zIndex: 1,
@@ -461,11 +461,11 @@ function SkillRow({
         {/* row index */}
         <span
           style={{
-            fontSize: 10,
+            fontSize: 11,
             opacity: 0.3,
             letterSpacing: "0.1em",
             fontVariantNumeric: "tabular-nums",
-            minWidth: 24,
+            minWidth: 28,
             flexShrink: 0,
           }}
         >
@@ -558,8 +558,8 @@ function DetailPanel({ skill }: { skill: (typeof SKILLS)[0] | null }) {
     <div
       style={{
         position: "sticky",
-        top: 72,
-        padding: "16px 0 16px 36px",
+        top: 100,
+        padding: "32px 0 32px 52px",
         borderLeft: "1px solid rgba(0,0,0,0.1)",
       }}
     >
@@ -571,7 +571,7 @@ function DetailPanel({ skill }: { skill: (typeof SKILLS)[0] | null }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -14 }}
             transition={{ duration: 0.3 }}
-            style={{ display: "flex", flexDirection: "column", gap: 18 }}
+            style={{ display: "flex", flexDirection: "column", gap: 28 }}
           >
             {/* icon box */}
             <motion.div
@@ -579,8 +579,8 @@ function DetailPanel({ skill }: { skill: (typeof SKILLS)[0] | null }) {
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
               style={{
-                width: 56,
-                height: 56,
+                width: 72,
+                height: 72,
                 background: "#f5f5f5",
                 border: "1px solid rgba(0,0,0,0.1)",
                 borderRadius: 18,
@@ -749,11 +749,11 @@ export default function Skills() {
           zIndex: 2,
           maxWidth: 1240,
           margin: "0 auto",
-          padding: "36px 64px 24px",
+          padding: "96px 64px",
         }}
       >
         {/* HEADER */}
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 60 }}>
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -763,7 +763,7 @@ export default function Skills() {
               display: "inline-flex",
               alignItems: "center",
               gap: 7,
-              marginBottom: 10,
+              marginBottom: 18,
               padding: "3px 12px",
               borderRadius: 100,
               border: "1px solid rgba(0,0,0,0.15)",
@@ -823,7 +823,7 @@ export default function Skills() {
             transition={{ duration: 1.1, ease: [0.76, 0, 0.24, 1], delay: 0.1 }}
             style={{
               height: 1,
-              marginTop: 12,
+              marginTop: 28,
               transformOrigin: "left",
               background: "rgba(0,0,0,0.12)",
             }}
@@ -864,11 +864,11 @@ export default function Skills() {
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.3 }}
           style={{
-            marginTop: 16,
+            marginTop: 52,
             display: "flex",
             justifyContent: "space-between",
             borderTop: "1px solid rgba(0,0,0,0.08)",
-            paddingTop: 12,
+            paddingTop: 22,
             flexWrap: "wrap",
             gap: 12,
           }}
@@ -884,7 +884,7 @@ export default function Skills() {
           >
             {SKILLS.length} Technologies
           </p>
-          <p
+          {/* /<p
             style={{
               fontSize: 10,
               color: "#ccc",
@@ -894,7 +894,7 @@ export default function Skills() {
             }}
           >
             Hover rows to interact
-          </p>
+          </p> */}
         </motion.div>
       </div>
     </section>
