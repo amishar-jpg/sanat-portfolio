@@ -1,11 +1,12 @@
 "use client";
+import Loader from "@/components/loader/Loader";
 import Navbar from "@/components/Navbar/Navbar";
+import Hero from "../components/Hero/Hero";
 import About from "@/components/about/About";
+import Skills from "@/components/skills/Skills";
+import Journey from "@/components/journey/Journey";
 import Works from "@/components/projects/Projects";
 import Connect from "../components/contact/Contact";
-import Skills from "@/components/skills/Skills";
-import Loader from "@/components/loader/Loader";
-import Hero from "../components/Hero/Hero";
 
 import { useState, useEffect } from "react";
 
@@ -21,9 +22,9 @@ export default function Page() {
       </main>
       <About />
       <Skills />
+      <Journey />
       <Works />
       <Connect />
-      
     </>
   );
 }
