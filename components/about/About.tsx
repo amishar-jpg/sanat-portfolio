@@ -314,9 +314,9 @@ export default function About() {
               }}
             >
               <img
-                src="/Sanat.png"
+                src="/first.png"
                 alt="Sanat Jha"
-                style={{ width:"100%", height:"100%", objectFit:"cover" }}
+                style={{ width:"100%", height:"100%", objectFit:"cover", scale:"1.1" }}
               />
             </div>
           </div>
@@ -326,7 +326,7 @@ export default function About() {
             ref={bioRef}
             style={{
               position: "absolute",
-              bottom: "7%",
+              bottom: "10%",
               left: "50%",
               transform: "translateX(-50%)",
               zIndex: 30,
