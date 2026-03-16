@@ -12,14 +12,14 @@ const EDUCATION = [
   {
     degree: "BTech — Indian Institute of Technology Roorkee",
     field: "Production & Industrial Engineering",
-    year: "2023–27",
+    year: "2024–28",
     rank: "AIR 5042",
     highlight: true,
   },
   {
     degree: "12th Boards — MPS School, Kota",
     field: "PCM · JEE Advanced Preparation",
-    year: "2023",
+    year: "2024",
     rank: null,
     highlight: false,
   },
