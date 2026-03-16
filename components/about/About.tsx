@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -215,19 +216,23 @@ export default function About() {
           className="sticky top-0 w-full h-screen overflow-hidden bg-[#080808]"
         >
           {/* ── Corner labels ── */}
-          <span
-            className="absolute top-[68px] left-4 sm:left-8 z-40 uppercase text-white/40 tracking-[0.22em]"
+          <motion.span
+            className="absolute top-[68px] left-4 sm:left-8 z-40 uppercase text-white/40 tracking-[0.22em] cursor-pointer"
             style={{ fontFamily: "'Barlow', sans-serif", fontSize: "0.6rem" }}
+            whileHover={{ color: "rgba(255,255,255,0.8)", x: 3 }}
+            transition={{ duration: 0.3 }}
           >
             (ABOUT.)
-          </span>
+          </motion.span>
 
-          <span
-            className="absolute top-[68px] right-4 sm:right-8 z-40 text-white/40 tracking-[0.18em]"
+          <motion.span
+            className="absolute top-[68px] right-4 sm:right-8 z-40 text-white/40 tracking-[0.18em] cursor-pointer"
             style={{ fontFamily: "'Barlow', sans-serif", fontSize: "0.6rem" }}
+            whileHover={{ color: "rgba(255,255,255,0.8)", x: -3 }}
+            transition={{ duration: 0.3 }}
           >
             [ N.002 ]
-          </span>
+          </motion.span>
 
           {/* ── Right edge progress rail ── */}
           <div className="absolute right-[18px] top-[10%] bottom-[10%] w-px bg-white/[0.08] z-40" />
@@ -260,9 +265,9 @@ export default function About() {
           </div>
 
           {/* ── Portrait photo ── */}
-          <div
+          <motion.div
             ref={photoRef}
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 overflow-hidden"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 overflow-hidden cursor-pointer group"
             style={{
               opacity: 0,
               scale: "1.25",
@@ -271,14 +276,23 @@ export default function About() {
               aspectRatio: "3 / 4",
               boxShadow: "0 40px 100px rgba(0,0,0,0.95)",
             }}
+            whileHover={{ 
+              scale: "1.3",
+              boxShadow: "0 50px 120px rgba(0,0,0,0.8)",
+            }}
+            transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
           >
-            <img
+            <motion.img
               src="/first.png"
               alt="Sanat Jha"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
               style={{ scale: "1.1" }}
             />
-          </div>
+            {/* Hover overlay */}
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+            />
+          </motion.div>
 
           {/* ── Bio text ── */}
           <div

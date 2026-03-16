@@ -6,10 +6,19 @@ import gsap from "gsap";
 const NAV_LINKS = ["About", "Skills", "Works", "Education", "Contact"] as const;
 type NavLink = (typeof NAV_LINKS)[number];
 
+// Map nav links to section IDs
+const SECTION_IDS: Record<NavLink, string> = {
+  About: "about",
+  Skills: "skills",
+  Works: "works",
+  Education: "education",
+  Contact: "contact",
+};
+
 // ─────────────────────────────────────────────
 // Single nav item — GSAP char-shuffle on hover
 // ─────────────────────────────────────────────
-function NavItem({ label }: { label: NavLink }) {
+function NavItem({ label, onClick }: { label: NavLink; onClick?: () => void }) {
   const topRowRef = useRef<HTMLSpanElement>(null);
   const botRowRef = useRef<HTMLSpanElement>(null);
   const busy = useRef(false);
@@ -80,6 +89,7 @@ function NavItem({ label }: { label: NavLink }) {
       data-nav-item
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
+      onClick={onClick}
       className="relative cursor-pointer select-none"
       style={{
         fontFamily: "'Barlow', sans-serif",
@@ -144,6 +154,18 @@ function Hamburger({ open, onClick }: { open: boolean; onClick: () => void }) {
 // Mobile overlay
 // ─────────────────────────────────────────────
 function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const handleNavClick = (label: NavLink) => {
+    onClose();
+    // Small delay to allow menu to close first
+    setTimeout(() => {
+      const sectionId = SECTION_IDS[label];
+      const element = document.getElementById(sectionId);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    }, 300);
+  };
+
   return (
     <div
       className={[
@@ -157,7 +179,7 @@ function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
       {NAV_LINKS.map((n) => (
         <button
           key={n}
-          onClick={onClose}
+          onClick={() => handleNavClick(n)}
           className="text-white/65 hover:text-white transition-colors duration-200 uppercase tracking-[0.22em] text-sm"
           style={{ fontFamily: "'Barlow', sans-serif" }}
         >
@@ -234,7 +256,17 @@ export default function Navbar() {
 
         <ul className="hidden md:flex gap-8 lg:gap-12 list-none text-[0.58rem] lg:text-[0.62rem] tracking-[0.2em] uppercase">
           {NAV_LINKS.map((n) => (
-            <NavItem key={n} label={n} />
+            <NavItem 
+              key={n} 
+              label={n} 
+              onClick={() => {
+                const sectionId = SECTION_IDS[n];
+                const element = document.getElementById(sectionId);
+                if (element) {
+                  element.scrollIntoView({ behavior: "smooth" });
+                }
+              }}
+            />
           ))}
         </ul>
 

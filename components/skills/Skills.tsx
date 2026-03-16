@@ -10,6 +10,22 @@ gsap.registerPlugin(ScrollTrigger);
 /* ─────────────────────────────────────────────────────────────────
    SKILL DATA  — SVG fill colors kept exactly as original
 ───────────────────────────────────────────────────────────────── */
+
+// ─── Enhanced Skill Icon with hover animation ────────────────────────────────
+function SkillIcon({ icon, name }: { icon: string; name: string }) {
+  return (
+    <motion.div
+      className="w-[72px] h-[72px] bg-white border border-black/10 rounded-[18px] flex items-center justify-center cursor-pointer"
+      whileHover={{ 
+        scale: 1.1, 
+        rotate: 5,
+        boxShadow: "0 12px 40px rgba(0,0,0,0.15)"
+      }}
+      transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
+      dangerouslySetInnerHTML={{ __html: icon }}
+    />
+  );
+}
 const SKILLS = [
   {
     name: "Python",
@@ -386,14 +402,8 @@ function DetailPanel({ skill }: { skill: (typeof SKILLS)[0] | null }) {
             transition={{ duration: 0.3 }}
             className="flex flex-col gap-7"
           >
-            {/* icon — dangerouslySetInnerHTML preserves original SVG fill colors */}
-            <motion.div
-              initial={{ scale: 0.75, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
-              className="w-[72px] h-[72px] bg-white border border-black/10 rounded-[18px] flex items-center justify-center"
-              dangerouslySetInnerHTML={{ __html: skill.icon }}
-            />
+            {/* icon — with hover animation */}
+            <SkillIcon icon={skill.icon} name={skill.name} />
 
             {/* name + tag */}
             <div>
@@ -433,8 +443,9 @@ function DetailPanel({ skill }: { skill: (typeof SKILLS)[0] | null }) {
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: i * 0.04, duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
-                  className="w-[6px] h-[6px] rounded-full"
+                  className="w-[6px] h-[6px] rounded-full cursor-pointer"
                   style={{ background: i < Math.round(skill.level / 10) ? "#111" : "rgba(0,0,0,0.1)" }}
+                  whileHover={{ scale: 1.5 }}
                 />
               ))}
             </div>

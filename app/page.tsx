@@ -20,11 +20,21 @@ export default function Page() {
         <Navbar />
         <Hero />
       </main>
-      <About />
-      <Skills />
-      <Journey />
-      <Works />
-      <Connect />
+      <section id="about">
+        <About />
+      </section>
+      <section id="skills">
+        <Skills />
+      </section>
+      <section id="education">
+        <Journey />
+      </section>
+      <section id="works">
+        <Works />
+      </section>
+      <section id="contact">
+        <Connect />
+      </section>
     </>
   );
 }

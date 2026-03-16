@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import gsap from "gsap";
 
 const MARQUEE_TEXT = "SANAT  JHA  .  SOFTWARE  DEVELOPER  .";
@@ -188,17 +189,26 @@ export default function Hero() {
             "sm:w-[min(48vw,560px)] sm:h-[min(72vh,760px)]",
             "sm:scale-[1.2]",
             "z-[2]",
+            "overflow-hidden",
           ].join(" ")}
         >
-          <img
+          <motion.img
             src="/first.png"
             alt="Portrait"
             className="w-full h-full object-cover object-top"
           />
+          <div
+            className="absolute inset-0 pointer-events-none"
+            aria-hidden="true"
+            style={{
+              background:
+                "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, transparent 50%, rgba(255,255,255,0.03) 100%)",
+            }}
+          />
         </div>
 
         {/* ── Location pill ── */}
-        <div
+        <motion.div
           className={[
             "absolute z-10 flex items-center gap-0",
             "bg-[#fcf6f6] rounded-r-[40px]",
@@ -206,14 +216,21 @@ export default function Hero() {
             "top-[18%] sm:top-1/2 sm:-translate-y-1/2",
             "-left-[10px]",
             "max-w-[220px] sm:max-w-[280px]",
+            "cursor-pointer",
           ].join(" ")}
+          whileHover={{ x: 8, boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}
+          transition={{ duration: 0.3, ease: [0.34, 1.56, 0.64, 1] }}
         >
           <span className="text-[13px] sm:text-[16px] font-medium leading-snug text-black/85 tracking-[0.01em] pr-2 sm:pr-[10px]">
             Located in
             <br />
             India
           </span>
-          <div className="w-10 h-10 sm:w-[52px] sm:h-[52px] rounded-full bg-[#282727] flex items-center justify-center shrink-0">
+          <motion.div 
+            className="w-10 h-10 sm:w-[52px] sm:h-[52px] rounded-full bg-[#282727] flex items-center justify-center shrink-0"
+            whileHover={{ scale: 1.1, rotate: 15 }}
+            transition={{ duration: 0.3 }}
+          >
             <svg
               viewBox="0 0 24 24"
               className="w-5 h-5 sm:w-6 sm:h-6 stroke-white/70 fill-none"
@@ -223,31 +240,41 @@ export default function Hero() {
               <path d="M2 12h20" />
               <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
             </svg>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         {/* ── Role text (top-right) ── */}
-        <div
+        <motion.div
           className={[
             "absolute z-10 text-left",
             "top-[18%] sm:top-1/2 sm:-translate-y-1/2",
             "right-4 sm:right-[72px]",
           ].join(" ")}
+          whileHover={{ x: -5 }}
+          transition={{ duration: 0.3 }}
         >
-          {/* Static diagonal arrow — no animation */}
-          <span className="block text-[22px] text-white/90 leading-none select-none">
+          {/* Animated diagonal arrow */}
+          <motion.span 
+            className="block text-[22px] text-white/90 leading-none select-none cursor-pointer"
+            whileHover={{ x: 5, y: 5 }}
+            transition={{ duration: 0.3 }}
+          >
             ↘
-          </span>
+          </motion.span>
 
-          <p className="mt-3 sm:mt-[18px] leading-[1.25]">
+          <motion.p 
+            className="mt-3 sm:mt-[18px] leading-[1.25]"
+            whileHover={{ x: -3 }}
+            transition={{ duration: 0.3 }}
+          >
             <ShuffleText
               text="Software Developer"
               topClass="text-white/95"
               botClass="text-white"
               wrapClass="text-[clamp(16px,2.4vw,34px)] font-medium tracking-[-0.01em] block"
             />
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
 
         {/* ── Infinite marquee ── */}
         <div className="absolute bottom-0 left-0 right-0 overflow-hidden z-[5] pb-[10px] leading-none">

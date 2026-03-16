@@ -199,15 +199,22 @@ function StatCard({
         ease: [0.22, 1, 0.36, 1],
         delay: index * 0.07,
       }}
-      className="flex flex-col gap-[6px] px-5 py-4 rounded-xl border border-white/[0.08] bg-white/[0.06]"
+      className="flex flex-col gap-[6px] px-5 py-4 rounded-xl border border-white/[0.08] bg-white/[0.06] cursor-pointer group"
+      whileHover={{
+        scale: 1.05,
+        backgroundColor: "rgba(255,255,255,0.12)",
+        borderColor: "rgba(255,255,255,0.2)",
+        boxShadow: "0 12px 40px rgba(0,0,0,0.3)",
+      }}
     >
-      <span
-        className="font-extrabold leading-none tracking-[-0.03em] text-white"
+      <motion.span
+        className="font-extrabold leading-none tracking-[-0.03em] text-white group-hover:text-white/90"
         style={{ fontSize: "clamp(16px,2vw,26px)" }}
+        whileHover={{ scale: 1.02 }}
       >
         {value}
-      </span>
-      <span className="text-[9px] tracking-[0.14em] uppercase text-white/40">
+      </motion.span>
+      <span className="text-[9px] tracking-[0.14em] uppercase text-white/40 group-hover:text-white/60 transition-colors duration-300">
         {label}
       </span>
     </motion.div>
@@ -340,109 +347,69 @@ function PhotoPanel() {
           transition={{ duration: 0.7, ease: [0.34, 1.24, 0.64, 1] }}
           className="flex flex-col gap-6"
         >
-          <div
-            className="relative rounded-[10px] overflow-hidden border border-white/10"
+          <motion.div
+            className="relative rounded-[10px] overflow-hidden border border-white/10 cursor-pointer group"
             style={{
               aspectRatio: "3/4",
               width: "100%",
               maxWidth: 260,
               boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
             }}
+            whileHover={{
+              scale: 1.03,
+              boxShadow: "0 24px 60px rgba(0,0,0,0.6)",
+            }}
+            transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
           >
-            <img
+            <motion.img
               src="/with-college.jpg"
               alt="Sanat Jha at IIT Roorkee"
-              className="w-full h-full object-cover object-top"
+              className="w-full h-full object-cover object-top transition-transform duration-700"
             />
-            <div
+            <motion.div
               className="absolute bottom-0 left-0 right-0 px-4 py-3"
               style={{
                 background:
                   "linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)",
               }}
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.4 }}
             >
-              <p className="m-0 text-white text-[11px] tracking-[0.12em] uppercase font-medium">
-                IIT Roorkee · 2023
-              </p>
-            </div>
-          </div>
-          <div>
-            <div className="text-[10px] tracking-[0.14em] uppercase text-white/40 mb-[6px]">
-              Current Institute
-            </div>
-            <div
-              className="font-extrabold tracking-[-0.035em] text-white leading-none"
-              style={{ fontSize: "clamp(18px, 2.4vw, 28px)" }}
-            >
-              IIT Roorkee
-            </div>
-          </div>
-          <div className="p-3 sm:p-[12px_16px] bg-white/[0.06] border border-white/[0.08] rounded-xl">
-            <div className="text-[9px] tracking-[0.12em] uppercase text-white/40 mb-[5px]">
-              Program
-            </div>
-            <div className="text-sm font-bold text-white">
-              B.Tech in Production & Industrial Engineering
-            </div>
-          </div>
-          <div>
-            <div className="text-[9px] tracking-[0.12em] uppercase text-white/40 mb-[8px]">
-              Years Completed
-            </div>
-            <div className="flex gap-[5px]">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{
-                    delay: i * 0.08,
-                    duration: 0.3,
-                    ease: [0.34, 1.56, 0.64, 1],
-                  }}
-                  className="w-[6px] h-[6px] rounded-full"
-                  style={{
-                    background: i < 1 ? "#fff" : "rgba(255,255,255,0.1)",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
+             
+            </motion.div>
+            <motion.div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          </motion.div>
         </motion.div>
       </AnimatePresence>
     </div>
   );
 }
 
-// ─── StringCurve — thick, dramatic, mouse-interactive bezier string ────────────
+// ─── StringCurve — thick solid white, high-travel mouse-interactive bezier ────
 function StringCurve() {
   const svgRef = useRef<SVGSVGElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
-  const ghostRef = useRef<SVGPathElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const dotRef = useRef<SVGCircleElement>(null); // midpoint follower dot
+  const dotRef = useRef<SVGCircleElement>(null);
 
-  // Physics state — all normalised 0-1
   const mouse = useRef({ x: 0.5, y: 0.5 });
-  const ctrl = useRef({ x: 0.5, y: 0.5 }); // bezier control point
-  const ctrlV = useRef({ x: 0, y: 0 }); // velocity
+  const ctrl = useRef({ x: 0.5, y: 0.5 });
+  const ctrlV = useRef({ x: 0, y: 0 });
   const raf = useRef<number>(0);
   const inside = useRef(false);
 
-  // ── Tuned for dramatic, string-like behaviour ──
-  const STIFFNESS = 0.018; // lower = more lag, more stretch
-  const DAMPING = 0.68; // lower = more oscillation / wobble
-  const PULL_X = 1.0; // full horizontal tracking
-  const PULL_Y = 1.1; // overshoot Y slightly for dramatic arc
-  const REST_Y = 0.5; // resting vertical position (centre of container)
+  const STIFFNESS = 0.055; // higher = snappier response
+  const DAMPING = 0.52; // lower = more bounce / wobble
+  const PULL_Y = 2.2; // amplifies vertical mouse offset from centre
+  const REST_Y = 0.5;
 
   useEffect(() => {
     const wrap = wrapRef.current;
     const svg = svgRef.current;
     const path = pathRef.current;
-    const ghost = ghostRef.current;
     const dot = dotRef.current;
-    if (!wrap || !svg || !path || !ghost) return;
+    if (!wrap || !svg || !path) return;
 
     const buildD = (cx: number, cy: number) => {
       const W = svg.clientWidth || wrap.clientWidth || 1;
@@ -451,13 +418,11 @@ function StringCurve() {
       return `M 0,${y0} Q ${cx * W},${cy * H} ${W},${y0}`;
     };
 
-    // Update the midpoint follower dot position (midpoint of quadratic bezier at t=0.5)
     const updateDot = (cx: number, cy: number) => {
       if (!dot || !svg) return;
       const W = svg.clientWidth || wrap.clientWidth || 1;
       const H = svg.clientHeight || wrap.clientHeight || 1;
       const y0 = H * REST_Y;
-      // Quadratic bezier midpoint formula: B(0.5) = 0.25*P0 + 0.5*CP + 0.25*P1
       const mx = 0.25 * 0 + 0.5 * (cx * W) + 0.25 * W;
       const my = 0.25 * y0 + 0.5 * (cy * H) + 0.25 * y0;
       dot.setAttribute("cx", String(mx));
@@ -467,16 +432,14 @@ function StringCurve() {
     const tick = () => {
       raf.current = requestAnimationFrame(tick);
 
-      const tx = inside.current
-        ? mouse.current.x * PULL_X + (1 - PULL_X) * 0.5
-        : 0.5;
+      const tx = inside.current ? mouse.current.x : 0.5;
+      // amplify vertical travel around the rest line
       const ty = inside.current
-        ? mouse.current.y * PULL_Y + (1 - PULL_Y) * REST_Y
+        ? (mouse.current.y - REST_Y) * PULL_Y + REST_Y
         : REST_Y;
 
       const fx = (tx - ctrl.current.x) * STIFFNESS;
       const fy = (ty - ctrl.current.y) * STIFFNESS;
-
       ctrlV.current.x = (ctrlV.current.x + fx) * DAMPING;
       ctrlV.current.y = (ctrlV.current.y + fy) * DAMPING;
       ctrl.current.x += ctrlV.current.x;
@@ -484,7 +447,6 @@ function StringCurve() {
 
       const d = buildD(ctrl.current.x, ctrl.current.y);
       path.setAttribute("d", d);
-      ghost.setAttribute("d", d);
       updateDot(ctrl.current.x, ctrl.current.y);
     };
 
@@ -506,11 +468,10 @@ function StringCurve() {
     };
     const onLeave = () => {
       inside.current = false;
-      // snap-back impulse — more dramatic
-      ctrlV.current.y += (REST_Y - ctrl.current.y) * 0.14;
-      ctrlV.current.x += (0.5 - ctrl.current.x) * 0.06;
+      // strong snap-back impulse
+      ctrlV.current.y += (REST_Y - ctrl.current.y) * 0.3;
+      ctrlV.current.x += (0.5 - ctrl.current.x) * 0.1;
     };
-
     const onTouch = (e: TouchEvent) => {
       if (!e.touches[0]) return;
       const r = wrap.getBoundingClientRect();
@@ -526,7 +487,7 @@ function StringCurve() {
     };
     const onTouchEnd = () => {
       inside.current = false;
-      ctrlV.current.y += (REST_Y - ctrl.current.y) * 0.14;
+      ctrlV.current.y += (REST_Y - ctrl.current.y) * 0.3;
     };
 
     wrap.addEventListener("mousemove", onMove);
@@ -543,7 +504,6 @@ function StringCurve() {
       wrap.removeEventListener("touchmove", onTouch);
       wrap.removeEventListener("touchend", onTouchEnd);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -552,9 +512,8 @@ function StringCurve() {
       className="relative w-full select-none"
       style={{ height: 160, cursor: "crosshair" }}
     >
-      {/* hint */}
       <span
-        className="absolute left-1/2 -translate-x-1/2 top-3 pointer-events-none select-none uppercase tracking-[0.28em] text-white/18"
+        className="absolute left-1/2 -translate-x-1/2 top-3 pointer-events-none select-none uppercase"
         style={{
           fontFamily: "'Helvetica Neue', sans-serif",
           fontSize: "0.46rem",
@@ -571,123 +530,40 @@ function StringCurve() {
         style={{ overflow: "visible" }}
         preserveAspectRatio="none"
       >
-        <defs>
-          {/* multi-layer glow: inner sharp + outer bloom */}
-          <filter id="sg-glow" x="-30%" y="-300%" width="160%" height="700%">
-            <feGaussianBlur
-              in="SourceGraphic"
-              stdDeviation="2"
-              result="blur1"
-            />
-            <feGaussianBlur
-              in="SourceGraphic"
-              stdDeviation="8"
-              result="blur2"
-            />
-            <feGaussianBlur
-              in="SourceGraphic"
-              stdDeviation="18"
-              result="blur3"
-            />
-            <feMerge>
-              <feMergeNode in="blur3" />
-              <feMergeNode in="blur2" />
-              <feMergeNode in="blur1" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-
-          <filter
-            id="sg-dot-glow"
-            x="-200%"
-            y="-200%"
-            width="500%"
-            height="500%"
-          >
-            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="b" />
-            <feMerge>
-              <feMergeNode in="b" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-
-        {/* ── Layer 1: wide diffuse bloom ── */}
-        <path
-          ref={ghostRef}
-          d="M 0,80 Q 50%,80 100%,80"
-          fill="none"
-          stroke="rgba(255,255,255,0.06)"
-          strokeWidth="28"
-          strokeLinecap="round"
-          filter="url(#sg-glow)"
-          style={{ pointerEvents: "none" }}
-        />
-
-        {/* ── Layer 2: mid glow ── */}
-        <path
-          d="M 0,80 Q 50%,80 100%,80"
-          fill="none"
-          stroke="rgba(255,255,255,0.12)"
-          strokeWidth="10"
-          strokeLinecap="round"
-          filter="url(#sg-glow)"
-          style={{ pointerEvents: "none" }}
-          ref={(el) => {
-            // mirror ghost path updates through React ref sharing trick
-            if (el && ghostRef.current) {
-              const origSet = ghostRef.current.setAttribute.bind(
-                ghostRef.current,
-              );
-              (ghostRef.current as any).__mid = el;
-              ghostRef.current.setAttribute = function (
-                name: string,
-                val: string,
-              ) {
-                origSet(name, val);
-                if (name === "d") el.setAttribute("d", val);
-              };
-            }
-          }}
-        />
-
-        {/* ── Layer 3: core string — thick & sharp ── */}
+        {/* thick solid white string — no filters, no gradients */}
         <path
           ref={pathRef}
           d="M 0,80 Q 50%,80 100%,80"
           fill="none"
-          stroke="rgba(255,255,255,0.9)"
-          strokeWidth="2.5"
+          stroke="rgba(255,255,255,0.95)"
+          strokeWidth="4"
           strokeLinecap="round"
-          filter="url(#sg-glow)"
           style={{ pointerEvents: "none" }}
         />
 
-        {/* ── Midpoint follower dot ── */}
+        {/* midpoint follower dot */}
         <circle
           ref={dotRef}
           cx="50%"
           cy="80"
-          r="4"
+          r="6"
           fill="white"
-          opacity="0.7"
-          filter="url(#sg-dot-glow)"
           style={{ pointerEvents: "none" }}
         />
 
-        {/* ── Endpoint anchor dots ── */}
+        {/* endpoint anchor dots */}
         <circle
           cx="0"
           cy="80"
-          r="3.5"
-          fill="rgba(255,255,255,0.5)"
+          r="5"
+          fill="rgba(255,255,255,0.6)"
           style={{ pointerEvents: "none" }}
         />
         <circle
           cx="100%"
           cy="80"
-          r="3.5"
-          fill="rgba(255,255,255,0.5)"
+          r="5"
+          fill="rgba(255,255,255,0.6)"
           style={{ pointerEvents: "none" }}
         />
       </svg>
@@ -773,12 +649,8 @@ export default function Journey() {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="mt-10 sm:mt-[52px] flex justify-between border-t border-white/[0.08] pt-[22px] flex-wrap gap-3"
         >
-          <p className="text-[10px] text-white/30 tracking-[0.12em] uppercase m-0">
-            {EDUCATION.length} Institutions
-          </p>
-          <p className="text-[10px] text-white/30 tracking-[0.12em] uppercase m-0">
-            [ N.003 ]
-          </p>
+        
+         
         </motion.div>
       </div>
 
